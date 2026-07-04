@@ -1,12 +1,9 @@
 import bluetooth
 import pygame
-from numpy import interp
 
 import time
-from math import sqrt, floor, pi
 
-import movement
-
+from numpy import interp
 
 def exit():
     if sock is not None:
@@ -45,23 +42,35 @@ def constrain(x, start: int, end: int, delta: int):
     return x
 
 
+sock = None
+def send_vals(left_speed: int, right_speed: int, ang: int):
+    if sock is not None:
+        sock.send('#'.encode() 
+                  + left_speed.to_bytes(1, "big") 
+                  + '+'.encode() 
+                  + right_speed.to_bytes(1, "big") 
+                  + '+'.encode() 
+                  + ang.to_bytes(1, "big") 
+                  + '$'.encode())           
+
+"""
 with open("mac.txt", "r") as f:
     esp_mac = f.readline().strip()
-sock = None
 try:
     sock = bluetooth.BluetoothSocket(bluetooth.RFCOMM)
     sock.connect((esp_mac, 1))
     time.sleep(2)
 except bluetooth.btcommon.BluetoothError as e:
     print(f"Error: {e}")
-
+"""
 pygame.init()
 pygame.joystick.init()
 controller = None
 wait_next_press = False
 left_speed = 0
 right_speed = 0
-fork_pos = 150
+fork_pos = 100 
+# ps4 controller axis mapping: 0 = left stick horiz, 1 = left stick vert, 2 = left trigger, 3 = right stick horiz, 4 = right stick vert, 5 = right trigger
 while True:
     # hotplug the controller (dualshock 4)
     for event in pygame.event.get():
@@ -70,14 +79,19 @@ while True:
         if event.type == pygame.JOYDEVICEREMOVED:
             controller = None
     if controller is not None:
-        axes = joystick.get_numaxes(controller)
-        for i in range(axes):
-            axis = joystick.get_axis(i)
-            print(f"{i}: {axis}")
+        left_speed = int(constrain(interp(-1 * deadzone(controller.get_axis(1)), [-1, 1], [-255, 255]), -255, 255, 0))
+        right_speed = int(constrain(interp(-1 * deadzone(controller.get_axis(4)), [-1, 1], [-255, 25j]), -255, 255, 0))
+        # lower fork
+        if controller.get_axis(2) > -0.5 and controller.get_axis(5) < -0.5:
+            fork_pos = constrain(fork_pos, 0, 255, -1) 
+        elif controller.get_axis(5) > -0.5 and controller.get_axis(2) < -0.5:
+            fork_pos = constrain(fork_pos, 0, 255, 1)
+        send_vals(left_speed, right_speed, fork_pos)
+        print(f"{left_speed}, {right_speed}")
         if controller.get_button(10):
             exit()
 
 
 
     pygame.event.pump()
-    time.sleep(0.01)
+    time.sleep(1)

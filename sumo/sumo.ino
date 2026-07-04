@@ -48,7 +48,6 @@ void setup() {
 
 // Moves the wheels and sets the position of the fork
 void execute_move(int motor1_speed, int motor2_speed, int ang) {
-
   if (motor1_speed == 0) {
     analogWrite(motor_int1, 0);
     analogWrite(motor_int2, 0);
@@ -57,18 +56,18 @@ void execute_move(int motor1_speed, int motor2_speed, int ang) {
       analogWrite(motor_int2, 0);
   } else {
       analogWrite(motor_int1, 0);
-      analogWrite(motor_int2, motor1_speed);
+      analogWrite(motor_int2, -motor1_speed);
   }
   
   if (motor2_speed == 0) {
     analogWrite(motor_int3, 0);
     analogWrite(motor_int4, 0);
   } else if (motor2_speed > 0) {
-      analogWrite(motor_int3, motor1_speed);
+      analogWrite(motor_int3, motor2_speed);
       analogWrite(motor_int4, 0);
   } else {
       analogWrite(motor_int3, 0);
-      analogWrite(motor_int4, motor1_speed);
+      analogWrite(motor_int4, -motor2_speed);
   }
 
   // TODO set servo
@@ -79,30 +78,23 @@ void execute_move(int motor1_speed, int motor2_speed, int ang) {
 #define MSG_DELIN '+'
 #define MSG_END '$'
 // "$" -> end byte
-// motor 1 is the left motor where -1 means reverse, 0 means stopped, 1 means forwards, same for motor2
-// example packet with each byte in brackets: <start><int motor1><delin><int motor2><delin><int ang><end>
-int motor1;
+// motor1_speed is a speed from -255 to 255, negative is reverse, 0 is stopped, ditto for motor2_speed
+// example packet with each byte in brackets: <start><int motor1_speed><delin><int motor2_speed><delin><int ang><end>
+int motor1_speed;
 int motor2;
-void loop() { 
-  /*
-  
+void loop() {   
   while (SerialBT.available()) {
     if (SerialBT.read() == MSG_START) {
-      motor1 = SerialBT.read();
+      motor1_speed = SerialBT.read();
       } if (SerialBT.read() == MSG_DELIN) {
-        motor2 = SerialBT.read();
+        motor2_speed = SerialBT.read();
         if (SerialBT.read() == MSG_DELIN) {
           ang = SerialBT.read();
           if (SerialBT.read() == MSG_END) {
-            execute_move(motor1, motor2, ang);
+            execute_move(motor1_speed, motor2_speed, ang);
           }
         }
       }
     }
-  delay(20); // 50 hz = 20ms period
-  */ 
-  // execute_move(1, 1, 150);
-  execute_move(50, 50, 100);
-  delay(100);
 }
 
