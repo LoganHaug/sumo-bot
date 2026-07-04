@@ -1,0 +1,2 @@
+PyBluez==0.30
+pygame==2.6.1
