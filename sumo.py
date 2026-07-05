@@ -46,14 +46,13 @@ sock = None
 def send_vals(left_speed: int, right_speed: int, ang: int):
     if sock is not None:
         sock.send('#'.encode() 
-                  + left_speed.to_bytes(1, "big") 
-                  + '+'.encode() 
-                  + right_speed.to_bytes(1, "big") 
-                  + '+'.encode() 
-                  + ang.to_bytes(1, "big") 
-                  + '$'.encode())           
+                  + left_speed.to_bytes(4, "big", signed=True) 
+                  + '\0\0\0+'.encode() 
+                  + right_speed.to_bytes(4, "big", signed=True) 
+                  + '\0\0\0+'.encode() 
+                  + ang.to_bytes(4, "big", signed=True) 
+                  + '\0\0\0$'.encode())           
 
-"""
 with open("mac.txt", "r") as f:
     esp_mac = f.readline().strip()
 try:
@@ -62,7 +61,6 @@ try:
     time.sleep(2)
 except bluetooth.btcommon.BluetoothError as e:
     print(f"Error: {e}")
-"""
 pygame.init()
 pygame.joystick.init()
 controller = None
@@ -79,19 +77,17 @@ while True:
         if event.type == pygame.JOYDEVICEREMOVED:
             controller = None
     if controller is not None:
-        left_speed = int(constrain(interp(-1 * deadzone(controller.get_axis(1)), [-1, 1], [-255, 255]), -255, 255, 0))
-        right_speed = int(constrain(interp(-1 * deadzone(controller.get_axis(4)), [-1, 1], [-255, 25j]), -255, 255, 0))
+        left_speed = int(constrain(interp(-1 * deadzone(controller.get_axis(1)), [-1, 1], [-65535, 65535]), -65535, 65535, 0))
+        right_speed = int(constrain(interp(-1 * deadzone(controller.get_axis(4)), [-1, 1], [-65535, 65535]), -65535, 65535, 0))
         # lower fork
         if controller.get_axis(2) > -0.5 and controller.get_axis(5) < -0.5:
-            fork_pos = constrain(fork_pos, 0, 255, -1) 
+            fork_pos = constrain(fork_pos, 0, 65535, -5) 
         elif controller.get_axis(5) > -0.5 and controller.get_axis(2) < -0.5:
-            fork_pos = constrain(fork_pos, 0, 255, 1)
+            fork_pos = constrain(fork_pos, 0, 65535, 5)
+        print(f"ls: {left_speed}\trs: {right_speed}\tang: {fork_pos}")
         send_vals(left_speed, right_speed, fork_pos)
-        print(f"{left_speed}, {right_speed}")
         if controller.get_button(10):
             exit()
 
 
-
     pygame.event.pump()
-    time.sleep(1)
