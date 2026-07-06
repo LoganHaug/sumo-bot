@@ -23,7 +23,7 @@ BluetoothSerial SerialBT;
 #define servo 18
 
 #define PWM_FREQ 500 // hz
-#define PWM_RESOLUTION 16 // bits
+#define PWM_RESOLUTION 8 // bits
 
 // The max duty cycle value based on PWM resolution (will be 255 if resolution is 8 bits)
 const int MAX_DUTY_CYCLE = (int)(pow(2, PWM_RESOLUTION) - 1);
@@ -49,33 +49,42 @@ void setup() {
 
 
 // Moves the wheels and sets the position of the fork
+int motor1_dc;
+int motor2_dc;
 void execute_move(int motor1_speed, int motor2_speed, int ang) {
-  motor1_speed = map(motor1_speed, -65535, 65535, -MAX_DUTY_CYCLE, MAX_DUTY_CYCLE);
-  motor2_speed = map(motor2_speed, -65535, 65535, -MAX_DUTY_CYCLE, MAX_DUTY_CYCLE);
-  ang = map(ang, 0, 30, 0, MAX_DUTY_CYCLE);
+  motor1_dc = map(abs(motor1_speed), 0, 127, 0, MAX_DUTY_CYCLE);
+  motor2_dc = map(abs(motor2_speed), 0, 127, 0, MAX_DUTY_CYCLE);
+  ang = map(ang, 0, 255, 0, MAX_DUTY_CYCLE);
   if (motor1_speed == 0) {
     ledcWriteChannel(0, 0);
     ledcWriteChannel(1, 0);
   } else if (motor1_speed > 0) {
-      ledcWriteChannel(0, motor1_speed);
+      ledcWriteChannel(0, motor1_dc);
       ledcWriteChannel(1, 0);
   } else {
       ledcWriteChannel(0, 0);
-      ledcWriteChannel(1, -motor1_speed);
+      ledcWriteChannel(1, motor1_dc);
   }
   
   if (motor2_speed == 0) {
     ledcWriteChannel(2, 0);
     ledcWriteChannel(3, 0);
   } else if (motor2_speed > 0) {
-      ledcWriteChannel(2, motor2_speed);
+      ledcWriteChannel(2, motor2_dc);
       ledcWriteChannel(3, 0);
   } else {
       ledcWriteChannel(2, 0);
-      ledcWriteChannel(3, -motor2_speed);
+      ledcWriteChannel(3, motor2_dc);
   }
   // set servo
   ledcWriteChannel(4, ang);
+}
+
+int unsigned_conv(int val) {
+  if (val > 128) {
+    return map(val, 128, 255, -127, -1);
+  }
+  return val;
 }
 
 // "#" -> start byte
@@ -85,28 +94,23 @@ void execute_move(int motor1_speed, int motor2_speed, int ang) {
 // "$" -> end byte
 // motor1_speed is a speed from -255 to 255, negative is reverse, 0 is stopped, ditto for motor2_speed
 // example packet with each byte in brackets: <start><int motor1_speed><delin><int motor2_speed><delin><int ang><end>
-int motor1_speed;
-int motor2_speed;
-int ang;
-void loop() {   
+signed int motor1_speed;
+signed int motor2_speed;
+unsigned int ang;
+void loop() {
   while (SerialBT.available()) {
     if (SerialBT.read() == MSG_START) {
-      motor1_speed = SerialBT.read();
-      Serial.println(sizeof(SerialBT.read()));
-      } if (SerialBT.read() == MSG_DELIN) {
-        motor2_speed = SerialBT.read();
+      motor1_speed = unsigned_conv(SerialBT.read());
+      if (SerialBT.read() == MSG_DELIN) {
+        motor2_speed = unsigned_conv(SerialBT.read());
         if (SerialBT.read() == MSG_DELIN) {
           ang = SerialBT.read();
           if (SerialBT.read() == MSG_END) {
-            Serial.print(motor1_speed);
-            Serial.print(" ");
-            Serial.print(motor2_speed);
-            Serial.print(" ");
-            Serial.println(ang);
             execute_move(motor1_speed, motor2_speed, ang);
           }
         }
       }
-    }
+    } 
+  }
 }
 

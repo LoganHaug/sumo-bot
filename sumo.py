@@ -45,13 +45,13 @@ def constrain(x, start: int, end: int, delta: int):
 sock = None
 def send_vals(left_speed: int, right_speed: int, ang: int):
     if sock is not None:
-        sock.send('#'.encode() 
-                  + left_speed.to_bytes(4, "big", signed=True) 
-                  + '\0\0\0+'.encode() 
-                  + right_speed.to_bytes(4, "big", signed=True) 
-                  + '\0\0\0+'.encode() 
-                  + ang.to_bytes(4, "big", signed=True) 
-                  + '\0\0\0$'.encode())           
+        sock.send('#'.encode()
+                  + left_speed.to_bytes(1, "little", signed=True) 
+                  + '+'.encode()
+                  + right_speed.to_bytes(1, "little", signed=True) 
+                  + '+'.encode()
+                  + ang.to_bytes(1, "big") 
+                  + '$'.encode())        
 
 with open("mac.txt", "r") as f:
     esp_mac = f.readline().strip()
@@ -77,13 +77,13 @@ while True:
         if event.type == pygame.JOYDEVICEREMOVED:
             controller = None
     if controller is not None:
-        left_speed = int(constrain(interp(-1 * deadzone(controller.get_axis(1)), [-1, 1], [-65535, 65535]), -65535, 65535, 0))
-        right_speed = int(constrain(interp(-1 * deadzone(controller.get_axis(4)), [-1, 1], [-65535, 65535]), -65535, 65535, 0))
+        left_speed = int(constrain(interp(-1 * deadzone(controller.get_axis(1)), [-1, 1], [-127, 127]), -127, 127, 0))
+        right_speed = int(constrain(interp(-1 * deadzone(controller.get_axis(4)), [-1, 1], [-127, 127]), -127, 127, 0))
         # lower fork
         if controller.get_axis(2) > -0.5 and controller.get_axis(5) < -0.5:
-            fork_pos = constrain(fork_pos, 0, 65535, -5) 
+            fork_pos = constrain(fork_pos, 0, 255, -5) 
         elif controller.get_axis(5) > -0.5 and controller.get_axis(2) < -0.5:
-            fork_pos = constrain(fork_pos, 0, 65535, 5)
+            fork_pos = constrain(fork_pos, 0, 255, 5)
         print(f"ls: {left_speed}\trs: {right_speed}\tang: {fork_pos}")
         send_vals(left_speed, right_speed, fork_pos)
         if controller.get_button(10):
@@ -91,3 +91,4 @@ while True:
 
 
     pygame.event.pump()
+    time.sleep(0.05)
