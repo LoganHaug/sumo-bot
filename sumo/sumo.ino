@@ -20,14 +20,13 @@ BluetoothSerial SerialBT;
 #define motor_int2 22
 #define motor_int3 21
 #define motor_int4 19
-#define servo 18
+#define servo_pin 18
 
 #define PWM_FREQ 500 // hz
 #define PWM_RESOLUTION 8 // bits
 
 // The max duty cycle value based on PWM resolution (will be 255 if resolution is 8 bits)
 const int MAX_DUTY_CYCLE = (int)(pow(2, PWM_RESOLUTION) - 1);
-
 
 int motors[] = {motor_int1, motor_int2, motor_int3, motor_int4};
 void setup() {
@@ -39,8 +38,7 @@ void setup() {
   for (int i = 0; i < (sizeof(motors) / sizeof(motors[0])); i++) {
     ledcAttachChannel(motors[i], PWM_FREQ, PWM_RESOLUTION, i);
   }
-  ledcAttachChannel(servo, 50, PWM_RESOLUTION, 4);
-
+  ledcAttachChannel(servo_pin, PWM_FREQ, PWM_RESOLUTION, 4);
   // begin bluetooth connection
   SerialBT.begin(device_name);
   delay(500); // bluetooth amirite haha
@@ -55,26 +53,26 @@ void execute_move(int motor1_speed, int motor2_speed, int ang) {
   motor1_dc = map(abs(motor1_speed), 0, 127, 0, MAX_DUTY_CYCLE);
   motor2_dc = map(abs(motor2_speed), 0, 127, 0, MAX_DUTY_CYCLE);
   ang = map(ang, 0, 255, 0, MAX_DUTY_CYCLE);
-  if (motor1_speed == 0) {
+  if (motor2_speed == 0) {
     ledcWriteChannel(0, 0);
     ledcWriteChannel(1, 0);
-  } else if (motor1_speed > 0) {
-      ledcWriteChannel(0, motor1_dc);
+  } else if (motor2_speed > 0) {
+      ledcWriteChannel(0, motor2_dc);
       ledcWriteChannel(1, 0);
   } else {
       ledcWriteChannel(0, 0);
-      ledcWriteChannel(1, motor1_dc);
+      ledcWriteChannel(1, motor2_dc);
   }
   
-  if (motor2_speed == 0) {
+  if (motor1_speed == 0) {
     ledcWriteChannel(2, 0);
     ledcWriteChannel(3, 0);
-  } else if (motor2_speed > 0) {
-      ledcWriteChannel(2, motor2_dc);
-      ledcWriteChannel(3, 0);
-  } else {
+  } else if (motor1_speed > 0) {
       ledcWriteChannel(2, 0);
-      ledcWriteChannel(3, motor2_dc);
+      ledcWriteChannel(3, motor1_dc);
+  } else {
+      ledcWriteChannel(2, motor1_dc);
+      ledcWriteChannel(3, 0);
   }
   // set servo
   ledcWriteChannel(4, ang);
@@ -96,7 +94,7 @@ int unsigned_conv(int val) {
 // example packet with each byte in brackets: <start><int motor1_speed><delin><int motor2_speed><delin><int ang><end>
 signed int motor1_speed;
 signed int motor2_speed;
-unsigned int ang;
+int ang;
 void loop() {
   while (SerialBT.available()) {
     if (SerialBT.read() == MSG_START) {

@@ -81,9 +81,9 @@ while True:
         right_speed = int(constrain(interp(-1 * deadzone(controller.get_axis(4)), [-1, 1], [-127, 127]), -127, 127, 0))
         # lower fork
         if controller.get_axis(2) > -0.5 and controller.get_axis(5) < -0.5:
-            fork_pos = constrain(fork_pos, 0, 255, -5) 
+            fork_pos = constrain(fork_pos, 0, 255, -15) 
         elif controller.get_axis(5) > -0.5 and controller.get_axis(2) < -0.5:
-            fork_pos = constrain(fork_pos, 0, 255, 5)
+            fork_pos = constrain(fork_pos, 0, 255, 15)
         print(f"ls: {left_speed}\trs: {right_speed}\tang: {fork_pos}")
         send_vals(left_speed, right_speed, fork_pos)
         if controller.get_button(10):
